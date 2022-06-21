@@ -24,6 +24,19 @@ def get_string(s):
     return s
 
 
+def get_title(s):
+    s = s[7:]
+    s = s.split('_')[1]
+    s = get_string(s)
+    s = s.split(' ')
+    last_word = s[-1].split('.')[0]
+    s = s[:-1]
+    if not last_word.isnumeric():
+        s.append(last_word)
+    s = ' '.join(s)
+    return s
+
+
 @app.route('/artists')
 def artists():
     names = np.unique(df.artist_name.values)
@@ -49,10 +62,15 @@ def imagenames():
     imgs = imgs.reset_index()
     for idx, row in imgs.iterrows():
         payload.append({
-            'src': '/' + row.image, 'thumbnail': '/' + row.image, 'thumbnailWidth': 100, 'thumbnailHeight': 100})
+            'src': '/' + row.image,
+            'thumbnail': '/' + row.image,
+            'thumbnailWidth': 100,
+            'thumbnailHeight': 100,
+            'caption': f'Title: {get_title(row.image)} \nYear: {int(row.date)} \nArtist Nationality: {row.artist_nationality.capitalize()}',
+            'heading':  get_title(row.image)})
 
     payload = np.array(payload)
-    payload = payload[:min(len(payload), 10)].tolist()
+    payload = payload.tolist()
     payload = json.dumps({'names': payload}, cls=NumpyEncoder)
     return payload
 

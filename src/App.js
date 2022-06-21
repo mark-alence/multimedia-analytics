@@ -1,7 +1,10 @@
 import "./App.css";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Select from "react-select";
 import Gallery from "react-grid-gallery";
+import Coverflow from "react-coverflow";
+import { StyleRoot } from "radium";
+import { Switch, FormControlLabel } from "@mui/material";
 
 function getQueryString(filters) {
   let str = "?";
@@ -22,6 +25,7 @@ function App() {
   const [data, setData] = useState([{}]);
   const [filters, setFilters] = useState({});
   const [artistOptions, setArtistOptions] = useState([]);
+  const [isGrid, setIsGrid] = useState(true);
 
   useEffect(() => {
     fetch("/artists").then((res) =>
@@ -59,7 +63,6 @@ function App() {
           >
             <form
               onSubmit={(e) => {
-                console.log(e);
                 e.preventDefault();
                 setFilters({ ...filters, date: e.target[0].value });
               }}
@@ -69,20 +72,53 @@ function App() {
               </label>
             </form>
 
-            <Select
-              options={artistOptions}
-              onChange={(e) => {
-                setFilters({ ...filters, artist_name: e.value });
+            <FormControlLabel
+              control={
+                <Select
+                  options={artistOptions}
+                  onChange={(e) => {
+                    setFilters({ ...filters, artist_name: e.value });
+                  }}
+                  isSearchable={true}
+                />
+              }
+              label="Grid View"
+            />
+
+            <Switch
+              label="Gird View"
+              checked={isGrid}
+              onChange={() => {
+                setIsGrid(!isGrid);
               }}
-              isSearchable={true}
             />
           </div>
 
-          <div>
+          <div className="carousel-container">
             {typeof data.names === "undefined" ? (
               <p>Loading images...</p>
+            ) : isGrid ? (
+              <Gallery images={data.names} maxRows={1} />
             ) : (
-              <Gallery images={data.names} />
+              <StyleRoot>
+                <Coverflow
+                  width="100%"
+                  height="250"
+                  displayQuantityOfSide={2}
+                  enableHeading={true}
+                  infiniteScroll={true}
+                >
+                  {data.names.map((e, i) => (
+                    <img
+                      resizeMode="contain"
+                      width="3vw"
+                      src={e.src}
+                      key={i}
+                      alt={e.heading}
+                    />
+                  ))}
+                </Coverflow>
+              </StyleRoot>
             )}
           </div>
         </div>
