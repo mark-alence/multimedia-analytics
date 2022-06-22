@@ -4,10 +4,13 @@ from flask_cors import CORS
 import pandas as pd
 import json
 import numpy as np
+from scipy import spatial
+
 
 app = Flask(__name__)
 CORS(app)
 df = pd.read_csv('artistic_visual_storytelling.csv')
+embeddings = np.load('embeddings.npy')
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -37,6 +40,36 @@ def get_title(s):
     return s
 
 
+@app.route('/similar_images', methods=['GET'])
+def get_similar_images():
+
+    args = request.args
+    args_dict = args.to_dict()
+    idx = int(args_dict['id'])
+    selected_img = embeddings[idx]
+    sims = []
+    for i, img in enumerate(embeddings):
+        sims.append(spatial.distance.cosine(img, selected_img))
+    sims = np.array(sims)
+    ids = np.argsort(sims)[1:4]
+
+    payload = []
+    for i in ids:
+        payload.append({
+            'id': int(i),
+            'src': '/' + df.iloc[i].image,
+            'thumbnail': '/' + df.iloc[i].image,
+            'thumbnailWidth': 100,
+            'thumbnailHeight': 100,
+            'caption': f'Title: {get_title(df.iloc[i].image)} \nYear: {int(df.iloc[i].date)} \nArtist Nationality: {df.iloc[i].artist_nationality.capitalize()}',
+            'heading':  get_title(df.iloc[i].image)})
+
+    payload = np.array(payload)
+    payload = payload.tolist()
+    payload = json.dumps({'names': payload}, cls=NumpyEncoder)
+    return payload
+
+
 @app.route('/artists')
 def artists():
     names = np.unique(df.artist_name.values)
@@ -62,6 +95,7 @@ def imagenames():
     imgs = imgs.reset_index()
     for idx, row in imgs.iterrows():
         payload.append({
+            'id': row.id,
             'src': '/' + row.image,
             'thumbnail': '/' + row.image,
             'thumbnailWidth': 100,

@@ -4,7 +4,8 @@ import Select from "react-select";
 import Gallery from "react-grid-gallery";
 import Coverflow from "react-coverflow";
 import { StyleRoot } from "radium";
-import { Switch, FormControlLabel } from "@mui/material";
+import Overlay from "./Overlay";
+import { Switch, FormControlLabel, Button } from "@mui/material";
 
 function getQueryString(filters) {
   let str = "?";
@@ -23,9 +24,28 @@ function prettyString(str) {
 
 function App() {
   const [data, setData] = useState([{}]);
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({ date: 1410 });
   const [artistOptions, setArtistOptions] = useState([]);
   const [isGrid, setIsGrid] = useState(true);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [similarImages, setSimilarImages] = useState();
+
+  function fetchSimilarImages(img) {
+    fetch(`/similar_images?id=${img.id}`).then((res) =>
+      res.json().then((data) => {
+        setSimilarImages({ left: img, right: data.names });
+        setShowOverlay(true);
+      })
+    );
+  }
+
+  function getSimilarImagesFromGrid() {
+    fetchSimilarImages(arguments[1]);
+  }
+
+  function getSimilarImagesFromCarousel(img) {
+    fetchSimilarImages(img);
+  }
 
   useEffect(() => {
     fetch("/artists").then((res) =>
@@ -61,6 +81,8 @@ function App() {
               justifyContent: "space-around",
             }}
           >
+            <button onClick={() => setFilters({})}>Clear Filters</button>
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -68,7 +90,7 @@ function App() {
               }}
             >
               <label>
-                Year: <input type="number" />
+                Year: <input type="number"/>
               </label>
             </form>
 
@@ -82,7 +104,7 @@ function App() {
                   isSearchable={true}
                 />
               }
-              label="Grid View"
+              // label="Grid View"
             />
 
             <Switch
@@ -98,7 +120,10 @@ function App() {
             {typeof data.names === "undefined" ? (
               <p>Loading images...</p>
             ) : isGrid ? (
-              <Gallery images={data.names} maxRows={1} />
+              <Gallery
+                images={data.names}
+                onSelectImage={getSimilarImagesFromGrid}
+              />
             ) : (
               <StyleRoot>
                 <Coverflow
@@ -107,6 +132,9 @@ function App() {
                   displayQuantityOfSide={2}
                   enableHeading={true}
                   infiniteScroll={true}
+                  navigation={false}
+                  key={data.names.toString()}
+                  clickable={true}
                 >
                   {data.names.map((e, i) => (
                     <img
@@ -115,10 +143,20 @@ function App() {
                       src={e.src}
                       key={i}
                       alt={e.heading}
+                      onClick={() => getSimilarImagesFromCarousel(e)}
                     />
                   ))}
                 </Coverflow>
               </StyleRoot>
+            )}
+            {data.names && showOverlay && (
+              <div className="container">
+                <button onClick={() => setShowOverlay(false)}>Close</button>
+                <Overlay
+                  imageLeft={similarImages.left}
+                  imagesRight={similarImages.right}
+                />
+              </div>
             )}
           </div>
         </div>
