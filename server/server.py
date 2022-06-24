@@ -15,9 +15,13 @@ embeddings = np.load('embeddings.npy')
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
+        return super(NumpyEncoder, self).default(obj)
 
 
 def get_string(s):
@@ -38,6 +42,48 @@ def get_title(s):
         s.append(last_word)
     s = ' '.join(s)
     return s
+
+
+@app.route('/icicle_data')
+def get_icicle_data():
+
+    new_df = df.copy(deep=True)
+    new_df = new_df.loc[new_df['date'] > 1850]
+    new_df['binned_by_date'] = pd.cut(
+        new_df['date'], np.arange(1410, 2010, 20)).astype(str)
+    grouped_df = pd.DataFrame(new_df.groupby(
+        ['binned_by_date', 'style', 'media']).size())
+    grouped_df = grouped_df.rename({0: 'v'}, axis=1)
+    payload = {'children': [], 'name': 'root'}
+
+    for _, row in grouped_df.iterrows():
+        names = np.array(row.name)
+        target = payload
+        for n in names:
+
+            if len(target['children']) == 0 or n != target['children'][-1]['name']:
+                target['children'].append({'children': [], 'name': n})
+                target = target['children'][-1]
+
+            else:
+                if 'value' in target['children'][-1]:
+                    target['children'].append({})
+                target = target['children'][-1]
+
+        target['name'] = names[-1]
+        target['value'] = row['v']
+        del target['children']
+    print(payload)
+    payload = json.dumps({'names': payload}, cls=NumpyEncoder)
+    return payload
+
+
+@app.route('/toy_data')
+def toy_data():
+    f = open('flare.json')
+    obj = json.load(f)
+    f.close()
+    return json.dumps({'names': obj})
 
 
 @app.route('/similar_images', methods=['GET'])

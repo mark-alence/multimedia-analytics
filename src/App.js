@@ -6,6 +6,11 @@ import Coverflow from "react-coverflow";
 import { StyleRoot } from "radium";
 import Overlay from "./Overlay";
 import { Switch, FormControlLabel, Button } from "@mui/material";
+import Icicle from "icicle-chart";
+import Sunburst from "sunburst-chart";
+import Treemap from "treemap-chart";
+import CirclePack from "circlepack-chart";
+import * as d3 from "d3";
 
 function getQueryString(filters) {
   let str = "?";
@@ -29,6 +34,11 @@ function App() {
   const [isGrid, setIsGrid] = useState(true);
   const [showOverlay, setShowOverlay] = useState(false);
   const [similarImages, setSimilarImages] = useState();
+  const [icicleData, setIcicleData] = useState(null);
+  const icicleChart = useRef(null);
+  const sunburstChart = useRef(null);
+  const treemapChart = useRef(null);
+  const circlePackChart = useRef(null);
 
   function fetchSimilarImages(img) {
     fetch(`/similar_images?id=${img.id}`).then((res) =>
@@ -56,6 +66,48 @@ function App() {
         setArtistOptions(options);
       })
     );
+
+    fetch("/icicle_data").then((res) =>
+      res.json().then((data) => {
+        // Icicle()
+        //   .data(data.names)
+        //   .label("name")
+        //   .height(400)
+        //   .width(800)
+        //   .color((d, parent) => color(parent ? parent.data.name : null))
+        //   .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+        //   icicleChart.current
+        // );
+
+        CirclePack()
+          .data(data.names)
+          .label("name")
+          .height(400)
+          .width(800)
+          .color((d, parent) => color(parent ? parent.data.name : null))
+          .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+          circlePackChart.current
+        );
+
+
+        // Sunburst()
+        //   .data(data.names)
+        //   .label("name")
+        //   .height(400)
+        //   .width(800)
+        //   .color((d, parent) => color(parent ? parent.data.name : null))
+        //   .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+        //   sunburstChart.current
+        // );
+
+        // Treemap()
+        // .data(data.names)
+        // .color((d) => color(d.name))
+        // .height(400)
+        // .width(800)
+        // .excludeRoot(true)(treemapChart.current);
+      })
+    );
   }, []);
 
   useEffect(() => {
@@ -68,6 +120,8 @@ function App() {
       );
     }
   }, [filters]);
+
+  const color = d3.scaleOrdinal(d3.schemePaired);
 
   return (
     <div className="App">
@@ -90,7 +144,7 @@ function App() {
               }}
             >
               <label>
-                Year: <input type="number"/>
+                Year: <input type="number" />
               </label>
             </form>
 
@@ -161,6 +215,14 @@ function App() {
           </div>
         </div>
       </header>
+
+      <div>
+        <div id="icicle" ref={circlePackChart} />
+      </div>
+      <div>
+        {/* <div ref={treemapChart}/> */}
+        {/* <div id="sun" ref={sunburstChart} /> */}
+      </div>
     </div>
   );
 }
