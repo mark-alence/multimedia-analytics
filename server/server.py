@@ -51,7 +51,7 @@ def filter_images(args_dict):
     print(args_dict)
 
     for k in list(args_dict):
-        if args_dict[k] == 'null':
+        if args_dict[k] == 'null' or args_dict[k] == 'None':
             del args_dict[k]
 
     if 'date' in args_dict and 'end_date' in args_dict:
@@ -88,13 +88,16 @@ def get_icicle_data():
     filters = request.get_json()
     levels = filters['levels']
     del filters['levels']
+    payload = {'children': [], 'name': ''}
+
+    if len(levels)==0:
+       return json.dumps({'payload': payload}, cls=NumpyEncoder)
     print(levels)
 
     for k in filters:
         filters[k] = str(filters[k])
 
     new_df = filter_images(filters)
-    payload = {'children': [], 'name': ''}
 
     if len(new_df) != 0:
         # new_df = new_df.loc[new_df['date'] > 1850]

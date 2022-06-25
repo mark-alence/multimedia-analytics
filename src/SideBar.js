@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Switch, FormControlLabel, Button } from "@mui/material";
 import Select from "react-select";
 import FilterListOffIcon from "@mui/icons-material/FilterListOff";
+import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 
 function prettyString(str) {
   if (typeof str === "string") {
@@ -14,6 +15,7 @@ function prettyString(str) {
 }
 
 const levelOptions = ["date", "style", "media", "artist_name", "tags"];
+const chartOptions = ["icicle", "sunburst", "circlepack"];
 
 const customStyles = {
   option: (provided, state) => ({
@@ -57,7 +59,6 @@ function SideBar(props) {
   }, []);
 
   useEffect(() => {
-    console.log(levels)
     props.onLevelChange(levels);
   }, [levels]);
 
@@ -80,32 +81,53 @@ function SideBar(props) {
         {Object.keys(filterOptions).map((option) => {
           return (
             <div className="box">
-              <div className="select-container" key={option}>
-                <p className="select-text">{prettyString(option)}:</p>
-                <FormControlLabel
-                  className="select"
-                  style={{ paddingBottom: 5, margin: 0, width: "90%" }}
-                  control={
-                    <Select
-                      styles={customStyles}
-                      value={
-                        props.filters[option] === undefined
-                          ? ""
-                          : {
-                              value: props.filters[option],
-                              label: prettyString(props.filters[option]),
-                            }
-                      }
-                      options={filterOptions[option]}
-                      onChange={(e) => {
-                        props.onChange({ ...e, filter: option });
-                      }}
-                      isSearchable={true}
-                    />
-                  }
+              <p className="select-text">{prettyString(option)}:</p>
+              <div className="filter">
+                <FilterAltOffIcon
+                  class="icon"
+                  onClick={() => {
+                    props.removeFilter(option);
+                  }}
                 />
+                <div className="select-container" key={option}>
+                  <FormControlLabel
+                    className="select"
+                    style={{ paddingBottom: 5, margin: 0, width: "90%" }}
+                    control={
+                      <Select
+                        styles={customStyles}
+                        value={
+                          props.filters[option] === undefined
+                            ? ""
+                            : {
+                                value: props.filters[option],
+                                label: prettyString(props.filters[option]),
+                              }
+                        }
+                        options={filterOptions[option]}
+                        onChange={(e) => {
+                          props.onChange({ ...e, filter: option });
+                        }}
+                        isSearchable={true}
+                      />
+                    }
+                  />
+                </div>
               </div>
-              {/* <Button className="clear-button" onClick={() => props.onClear(option)}>Clear</Button> */}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="circle-group">
+        {chartOptions.map((e) => {
+          return (
+            <div
+              className="square"
+              style={{ opacity: e === props.chart ? 1 : 0.5 }}
+              onClick={() => props.setChart(e)}
+            >
+              {prettyString(e)}
             </div>
           );
         })}

@@ -1,10 +1,19 @@
 import "./App.css";
 import React, { useState, useEffect, useRef } from "react";
 
+import Gallery from "react-grid-gallery";
+
 function Overlay(props) {
+  const [height, setHeight] = useState(180);
+  const left = useRef(null);
+
+  // useEffect(() => {
+  //   setHeight(left.current.offsetHeight / 2);
+  // }, [left]);
+
   return (
     <div className="overlay-container">
-      <div className="overlay-left">
+      <div ref={left} className="overlay-left">
         {
           <OverlayImage
             side="left"
@@ -14,14 +23,19 @@ function Overlay(props) {
         }
       </div>
       <div className="overlay-right">
-        {props.imagesRight.map((e) => (
-          <OverlayImage
-            src={e.src}
-            heading={e.heading}
-            class="overlay-right-image"
-            side="right"
-          />
-        ))}
+        <div class="row" style={{ fontSize: 20, justifyContent: "center" }}>
+          Most Similar Images
+        </div>
+        <div style={{ flex: 1, maxHeight: "40%" }}>
+          <div className="grid-container-overlay">
+            <Gallery
+              images={props.imagesRight}
+              maxRows={1}
+              rowHeight={height}
+            />
+          </div>
+        </div>
+        <div className="row" />
       </div>
     </div>
   );

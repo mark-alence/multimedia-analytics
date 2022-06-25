@@ -6,9 +6,9 @@
 
 .box{
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: center;
-  align-items: end;
+  align-items: center;
   flex:1;
   min-width: 50%;
 }
@@ -47,9 +47,50 @@
   flex:3;
   /* width:100%; */
   /* max-width: 75%; */
-  flex-direction:'column';
+  flex-direction:column;
   align-items:flex-start;
   height:100%;
+  background-color:#333;
+
+}
+
+.filter{
+  display:flex;
+  flex-direction: row;
+  align-items: center;
+  width:100%
+}
+
+.icon{
+  width:17px;
+  fill:white;
+  margin-left:10px;
+  cursor:pointer;
+}
+
+.chart-info{
+  width:100%;
+  display: flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  box-sizing: border-box;
+  border-top: 3px solid white;
+  padding-top: 20px
+}
+
+.display-imgs{
+  width: fit-content;
+  margin-top: 30px;
+  /* background-color: white; */
+  /* border: 2px solid white */
+  border: 2px solid white;
+  border-radius: 20px;
+  padding:5px;
+}
+
+.display-imgs:hover{
+  cursor: pointer;
 }
 
 .page-container {
@@ -87,6 +128,8 @@
   flex:1;
   opacity: 1;
   min-width: 25%;
+  border-left: solid 3px white;
+  box-sizing: border-box;
 }
 
 
@@ -123,14 +166,35 @@
   align-items: center;
   height:250px;
   overflow: scroll;
-  display: block; clear: left;
+  display: block;
+   clear: left;
   flex:2
+}
+
+.grid-container-overlay{
+  justify-content: center;
+  align-items: center;
+  display: block;
+  clear: left;
 }
 
 
 .circle-container {
   display:flex;
   flex-direction: column;
+}
+
+.square{
+  height: 70px;
+  width: 100px;
+  border-radius: 10px;
+  background-color: white;
+  color: black;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin-bottom: 5px;
+  cursor: pointer;
 }
 
 .circle{
@@ -173,6 +237,14 @@
   box-sizing: border-box;
 }
 
+.close-div{
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  width: 80%;
+  padding-bottom:5px
+}
+
 .container {
   width: 100%;
   height: 100%;
@@ -180,6 +252,7 @@
   justify-content: center;
   align-items: center;
   position: fixed;
+  flex-direction: column;
   top: 0;
   left: 0;
   right: 0;
@@ -190,22 +263,36 @@
 .chart-container{
   /* height: 100%;  */
   /* width:100%; */
-  margin-top: 5%;
   display:flex;
   align-items: center;
   justify-content: center;
-  flex:1
+  flex:1;
+
+}
+
+.row{
+  flex:1;
+  display: flex;
+  flex-direction:column;
+  justify-content: flex-end;
+  align-items:center;
+}
+
+.sim-img {
+  font-size: 20px;
+  padding-bottom: 20px;
+  color:red
 }
 
 .overlay-container{
-  width: 95%;
-  height: 80%;
+  width: 80%;
+  height: 50%;
   /* background-color: red; */
   display: flex;
   flex-direction: row;
   border-style: solid;
   justify-content: space-around;
-  background-color: white
+  background-color: #333
 }
 
 .overlay-image-container{
@@ -216,8 +303,21 @@
   align-items: center;
   width: 100%;
   height: 100%;
-  flex: 1
+  flex: 1;
 }
+
+.close-button{
+  position:relative;
+  top:0;
+  right: 0;
+  cursor: pointer;
+}
+
+.close-button:hover{
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+}
+
 
 .overlay-left{
   display: flex;
@@ -229,9 +329,7 @@
 
 .overlay-right{
   display: flex;
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
+  flex-direction: column;
   width: 50%;
   /* margin-left: 10%; */
 }

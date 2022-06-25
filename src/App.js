@@ -12,6 +12,8 @@ import Treemap from "treemap-chart";
 import CirclePack from "circlepack-chart";
 import * as d3 from "d3";
 import SideBar from "./SideBar";
+import CloseIcon from "@mui/icons-material/Close";
+import CollectionsIcon from "@mui/icons-material/Collections";
 
 function getQueryString(filters) {
   let str = "?";
@@ -30,10 +32,12 @@ function App() {
   const [showOverlay, setShowOverlay] = useState(false);
   const [similarImages, setSimilarImages] = useState();
   const sunburstChart = useRef(null);
+  const icicleChart = useRef(null);
   const treemapChart = useRef(null);
   const circlePackChart = useRef(null);
   const [levels, setLevels] = useState(["date", "style", "media"]);
   const reloadChart = useRef(true);
+  const [chart, setChart] = useState("sunburst");
 
   function getFilterFromNode(node) {
     let filters = {};
@@ -71,6 +75,8 @@ function App() {
     fetchSimilarImages(img);
   }
 
+  function nodeClick(node) {}
+
   useEffect(() => {
     if (reloadChart.current) {
       fetch("/icicle_data", {
@@ -81,54 +87,66 @@ function App() {
         body: JSON.stringify({ ...filters, levels: levels }),
       }).then((res) =>
         res.json().then((res) => {
-          // Icicle()
-          //   .data(data.names)
-          //   .label("name")
-          //   .height(400)
-          //   .width(800)
-          //   .color((d, parent) => color(parent ? parent.data.name : null))
-          //   .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
-          //   icicleChart.current
-          // );
-
-          // CirclePack()
-          //   .data(data.names)
-          //   .label("name")
-          //   .height(400)
-          //   .width(800)
-          //   .color((d, parent) => color(parent ? parent.data.name : null))
-          //   .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
-          //   circlePackChart.current
-          // );
-
-          sunburstChart.current.innerHTML = "";
-
-          let myChart = Sunburst();
-
-          myChart()
-            .data(res.payload)
-            .label("name")
-            .height(400)
-            .width(800)
-            .color((d, parent) => color(parent ? parent.data.name : null))
-            .onNodeClick(function (node) {
-              setAdditionalFilters(getFilterFromNode(node.__dataNode));
-              myChart.focusOnNode(node);
-            })
-            .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
-            sunburstChart.current
-          );
-
-          // Treemap()
-          // .data(data.names)
-          // .color((d) => color(d.name))
-          // .height(400)
-          // .width(800)
-          // .excludeRoot(true)(treemapChart.current);
+          let myChart;
+          if (chart === "icicle") {
+            icicleChart.current.innerHTML = "";
+            myChart = Icicle();
+            myChart
+              .data(res.payload)
+              .label("name")
+              .height(400)
+              .width(400)
+              .color((d, parent) => color(parent ? parent.data.name : null))
+              .onClick(function (node) {
+                if (node) {
+                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
+                  myChart.zoomToNode(node);
+                }
+              })
+              .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+              icicleChart.current
+            );
+          } else if (chart === "sunburst") {
+            sunburstChart.current.innerHTML = "";
+            myChart = Sunburst();
+            myChart()
+              .data(res.payload)
+              .label("name")
+              .height(400)
+              .width(400)
+              .color((d, parent) => color(parent ? parent.data.name : null))
+              .onClick(function (node) {
+                if (node) {
+                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
+                  myChart.focusOnNode(node);
+                }
+              })
+              .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+              sunburstChart.current
+            );
+          } else if (chart === "circlepack") {
+            circlePackChart.current.innerHTML = "";
+            myChart = CirclePack();
+            myChart
+              .data(res.payload)
+              .label("name")
+              .height(400)
+              .width(400)
+              .color((d, parent) => color(parent ? parent.data.name : null))
+              .onClick(function (node) {
+                if (node) {
+                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
+                  myChart.zoomToNode(node);
+                }
+              })
+              .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+              circlePackChart.current
+            );
+          }
         })
       );
     }
-  }, [data, levels]);
+  }, [data, levels, chart]);
 
   useEffect(() => {
     let queryString = getQueryString(filters);
@@ -145,8 +163,12 @@ function App() {
 
   const color = d3.scaleOrdinal(d3.schemePaired);
 
+  useEffect(() => {
+    reloadChart.current = true;
+  }, [chart]);
+
   return (
-    <div className="App" style={{ height: window.innerHeight }}>
+    <div className="App" style={{ height: "100vh" }}>
       <header className="App-header">
         <div className="page-container">
           <div className="body-container">
@@ -155,6 +177,7 @@ function App() {
             ) : isGrid ? (
               <div className="grid-container">
                 <Gallery
+                  id="main-gal"
                   images={data}
                   onSelectImage={getSimilarImagesFromGrid}
                 />
@@ -186,22 +209,44 @@ function App() {
               </div>
             )}
 
-            <div>
-              <button
+            <div className="chart-info">
+              {
+                <div
+                  className="chart-container"
+                  ref={
+                    {
+                      sunburst: sunburstChart,
+                      icicle: icicleChart,
+                      circlepack: circlePackChart,
+                    }[chart]
+                  }
+                />
+              }
+              <CollectionsIcon
+                className="display-imgs"
                 onClick={() =>
                   setFilters((prev) => {
                     reloadChart.current = false;
                     return { ...prev, ...additionalFilters };
                   })
                 }
-              >
-                Show
-              </button>
-              <div className="chart-container" ref={sunburstChart} />
+              />
             </div>
           </div>
           <SideBar
-            onLevelChange={(e) => setLevels(e)}
+            setChart={(e) => setChart(e)}
+            chart={chart}
+            onLevelChange={(e) => {
+              reloadChart.current = true;
+              setLevels(e);
+            }}
+            removeFilter={(e) => {
+              setFilters((prev) => {
+                let newFilter = { ...prev };
+                delete newFilter[e];
+                return newFilter;
+              });
+            }}
             clearFilters={() => {
               setFilters({});
               reloadChart.current = true;
@@ -224,7 +269,12 @@ function App() {
           />
           {data && showOverlay && (
             <div className="container">
-              <button onClick={() => setShowOverlay(false)}>Close</button>
+              <div className="close-div">
+                <CloseIcon
+                  className="close-button"
+                  onClick={() => setShowOverlay(false)}
+                />
+              </div>
               <Overlay
                 imageLeft={similarImages.left}
                 imagesRight={similarImages.right}
