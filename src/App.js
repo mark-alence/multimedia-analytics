@@ -11,6 +11,7 @@ import Sunburst from "sunburst-chart";
 import Treemap from "treemap-chart";
 import CirclePack from "circlepack-chart";
 import * as d3 from "d3";
+import SideBar from "./SideBar";
 
 function getQueryString(filters) {
   let str = "?";
@@ -21,24 +22,37 @@ function getQueryString(filters) {
   return str;
 }
 
-function prettyString(str) {
-  str = str.replaceAll("-", " ");
-  str = str.replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
-  return str;
-}
-
 function App() {
   const [data, setData] = useState([{}]);
-  const [filters, setFilters] = useState({ date: 1410 });
-  const [artistOptions, setArtistOptions] = useState([]);
-  const [isGrid, setIsGrid] = useState(true);
+  const [filters, setFilters] = useState({ artist_name: "ad-reinhardt" });
+  const [additionalFilters, setAdditionalFilters] = useState({});
+  const [isGrid, setIsGrid] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [similarImages, setSimilarImages] = useState();
-  const [icicleData, setIcicleData] = useState(null);
-  const icicleChart = useRef(null);
   const sunburstChart = useRef(null);
   const treemapChart = useRef(null);
   const circlePackChart = useRef(null);
+  const [levels, setLevels] = useState(["date", "style", "media"]);
+  const reloadChart = useRef(true);
+
+  function getFilterFromNode(node) {
+    let filters = {};
+    let depth = 0;
+    while (node.parent != null) {
+      filters[depth] = node.data.name;
+      depth += 1;
+      node = node.parent;
+    }
+
+    depth -= 1;
+    for (let i = depth; i >= 0; i--) {
+      filters[levels[depth - i]] = filters[i];
+      delete filters[i];
+    }
+
+    filters["end_date"] = null;
+    return filters;
+  }
 
   function fetchSimilarImages(img) {
     fetch(`/similar_images?id=${img.id}`).then((res) =>
@@ -58,171 +72,167 @@ function App() {
   }
 
   useEffect(() => {
-    fetch("/artists").then((res) =>
-      res.json().then((data) => {
-        let options = data.names.map((e) => {
-          return { value: e, label: prettyString(e) };
-        });
-        setArtistOptions(options);
-      })
-    );
+    if (reloadChart.current) {
+      fetch("/icicle_data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...filters, levels: levels }),
+      }).then((res) =>
+        res.json().then((res) => {
+          // Icicle()
+          //   .data(data.names)
+          //   .label("name")
+          //   .height(400)
+          //   .width(800)
+          //   .color((d, parent) => color(parent ? parent.data.name : null))
+          //   .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+          //   icicleChart.current
+          // );
 
-    fetch("/icicle_data").then((res) =>
-      res.json().then((data) => {
-        // Icicle()
-        //   .data(data.names)
-        //   .label("name")
-        //   .height(400)
-        //   .width(800)
-        //   .color((d, parent) => color(parent ? parent.data.name : null))
-        //   .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
-        //   icicleChart.current
-        // );
+          // CirclePack()
+          //   .data(data.names)
+          //   .label("name")
+          //   .height(400)
+          //   .width(800)
+          //   .color((d, parent) => color(parent ? parent.data.name : null))
+          //   .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+          //   circlePackChart.current
+          // );
 
-        CirclePack()
-          .data(data.names)
-          .label("name")
-          .height(400)
-          .width(800)
-          .color((d, parent) => color(parent ? parent.data.name : null))
-          .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
-          circlePackChart.current
-        );
+          sunburstChart.current.innerHTML = "";
 
+          let myChart = Sunburst();
 
-        // Sunburst()
-        //   .data(data.names)
-        //   .label("name")
-        //   .height(400)
-        //   .width(800)
-        //   .color((d, parent) => color(parent ? parent.data.name : null))
-        //   .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
-        //   sunburstChart.current
-        // );
+          myChart()
+            .data(res.payload)
+            .label("name")
+            .height(400)
+            .width(800)
+            .color((d, parent) => color(parent ? parent.data.name : null))
+            .onNodeClick(function (node) {
+              setAdditionalFilters(getFilterFromNode(node.__dataNode));
+              myChart.focusOnNode(node);
+            })
+            .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
+            sunburstChart.current
+          );
 
-        // Treemap()
-        // .data(data.names)
-        // .color((d) => color(d.name))
-        // .height(400)
-        // .width(800)
-        // .excludeRoot(true)(treemapChart.current);
-      })
-    );
-  }, []);
+          // Treemap()
+          // .data(data.names)
+          // .color((d) => color(d.name))
+          // .height(400)
+          // .width(800)
+          // .excludeRoot(true)(treemapChart.current);
+        })
+      );
+    }
+  }, [data, levels]);
 
   useEffect(() => {
     let queryString = getQueryString(filters);
     if (queryString !== "") {
       fetch(`/filtered_images${queryString}`).then((res) =>
         res.json().then((data) => {
-          setData(data);
+          setData(data.names);
         })
       );
+    } else {
+      setData([]);
     }
   }, [filters]);
 
   const color = d3.scaleOrdinal(d3.schemePaired);
 
   return (
-    <div className="App">
+    <div className="App" style={{ height: window.innerHeight }}>
       <header className="App-header">
-        <div style={{ color: "black", width: "100%" }}>
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "row",
-              justifyContent: "space-around",
-            }}
-          >
-            <button onClick={() => setFilters({})}>Clear Filters</button>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setFilters({ ...filters, date: e.target[0].value });
-              }}
-            >
-              <label>
-                Year: <input type="number" />
-              </label>
-            </form>
-
-            <FormControlLabel
-              control={
-                <Select
-                  options={artistOptions}
-                  onChange={(e) => {
-                    setFilters({ ...filters, artist_name: e.value });
-                  }}
-                  isSearchable={true}
-                />
-              }
-              // label="Grid View"
-            />
-
-            <Switch
-              label="Gird View"
-              checked={isGrid}
-              onChange={() => {
-                setIsGrid(!isGrid);
-              }}
-            />
-          </div>
-
-          <div className="carousel-container">
-            {typeof data.names === "undefined" ? (
+        <div className="page-container">
+          <div className="body-container">
+            {typeof data === "undefined" ? (
               <p>Loading images...</p>
             ) : isGrid ? (
-              <Gallery
-                images={data.names}
-                onSelectImage={getSimilarImagesFromGrid}
-              />
-            ) : (
-              <StyleRoot>
-                <Coverflow
-                  width="100%"
-                  height="250"
-                  displayQuantityOfSide={2}
-                  enableHeading={true}
-                  infiniteScroll={true}
-                  navigation={false}
-                  key={data.names.toString()}
-                  clickable={true}
-                >
-                  {data.names.map((e, i) => (
-                    <img
-                      resizeMode="contain"
-                      width="3vw"
-                      src={e.src}
-                      key={i}
-                      alt={e.heading}
-                      onClick={() => getSimilarImagesFromCarousel(e)}
-                    />
-                  ))}
-                </Coverflow>
-              </StyleRoot>
-            )}
-            {data.names && showOverlay && (
-              <div className="container">
-                <button onClick={() => setShowOverlay(false)}>Close</button>
-                <Overlay
-                  imageLeft={similarImages.left}
-                  imagesRight={similarImages.right}
+              <div className="grid-container">
+                <Gallery
+                  images={data}
+                  onSelectImage={getSimilarImagesFromGrid}
                 />
               </div>
+            ) : (
+              <div class="carousel-container">
+                <StyleRoot>
+                  <Coverflow
+                    height="250"
+                    displayQuantityOfSide={2}
+                    infiniteScroll={true}
+                    navigation={false}
+                    key={data.toString()}
+                    clickable={true}
+                  >
+                    {data.map((e, i) => (
+                      <img
+                        // resizeMode="contain"
+                        class="carousel-img"
+                        width="3vw"
+                        src={e.src}
+                        key={i}
+                        alt={e.heading}
+                        onClick={() => getSimilarImagesFromCarousel(e)}
+                      />
+                    ))}
+                  </Coverflow>
+                </StyleRoot>
+              </div>
             )}
+
+            <div>
+              <button
+                onClick={() =>
+                  setFilters((prev) => {
+                    reloadChart.current = false;
+                    return { ...prev, ...additionalFilters };
+                  })
+                }
+              >
+                Show
+              </button>
+              <div className="chart-container" ref={sunburstChart} />
+            </div>
           </div>
+          <SideBar
+            onLevelChange={(e) => setLevels(e)}
+            clearFilters={() => {
+              setFilters({});
+              reloadChart.current = true;
+            }}
+            onSwitch={() => {
+              setIsGrid(!isGrid);
+            }}
+            filters={filters}
+            onChange={(e) => {
+              reloadChart.current = true;
+              setFilters((prev) => ({ ...filters, [e.filter]: e.value }));
+            }}
+            onClear={(e) => {
+              setFilters((prev) => {
+                let newData = { ...prev };
+                delete newData[e];
+                return newData;
+              });
+            }}
+          />
+          {data && showOverlay && (
+            <div className="container">
+              <button onClick={() => setShowOverlay(false)}>Close</button>
+              <Overlay
+                imageLeft={similarImages.left}
+                imagesRight={similarImages.right}
+              />
+            </div>
+          )}
         </div>
       </header>
-
-      <div>
-        <div id="icicle" ref={circlePackChart} />
-      </div>
-      <div>
-        {/* <div ref={treemapChart}/> */}
-        {/* <div id="sun" ref={sunburstChart} /> */}
-      </div>
     </div>
   );
 }

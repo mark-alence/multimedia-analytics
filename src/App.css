@@ -4,15 +4,66 @@
   width: 100%;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.box{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: end;
+  flex:1;
+  min-width: 50%;
+}
+
+.clear-button{
+
 }
 
 .carousel-img {
   width: fit-content;
   display: inline-block;
   justify-content: center
+}
+
+.select-container{
+  display:flex;
+  flex-direction: column;
+  width: 100%;
+  justify-content:center;
+  align-items: center
+}
+
+.select-text{
+  flex:1
+}
+
+
+
+.select{
+  flex:2;
+  display: flex;
+  justify-content:center;
+}
+
+.body-container{
+  flex:3;
+  /* width:100%; */
+  /* max-width: 75%; */
+  flex-direction:'column';
+  align-items:flex-start;
+  height:100%;
+}
+
+.page-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+
+.grid-container iframe {
+  height: 100px;
+  width: 100px
 }
 
 .App-header {
@@ -23,20 +74,103 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  font-size: 20px;
+  font-size: 10px;
   color: white;
 }
 
+.sidebar-container{
+  justify-self: flex-end;
+  background-color:#333;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  flex:1;
+  opacity: 1;
+  min-width: 25%;
+}
 
-.carousel-container figure {
-  width: 300px !important;
+
+.filter-icon{
+  cursor: pointer;
+}
+
+.switch-container{
+  display: flex;
+  flex-direction: row;
+  align-items: center
+}
+
+.sidebar-buttons{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+}
+
+
+.select-group{
+  flex-wrap: wrap;
+  display: flex;
+  flex-direction: row;
+  max-width: 95%;
+  justify-content: center;
+}
+
+.grid-container{
+  display: block;
+  justify-content: center;
+  align-items: center;
+  height:250px;
+  overflow: scroll;
+  display: block; clear: left;
+  flex:2
+}
+
+
+.circle-container {
+  display:flex;
+  flex-direction: column;
+}
+
+.circle{
+  height: 50px;
+  width: 50px;
+  border-radius: 50px;
+  background-color: white;
+  color: black;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+
+.circle-group{
+  /* flex-wrap: wrap; */
+  margin-top: 50px;
+  display: flex;
+  flex-direction: row;
+  width: 95%;
+  justify-content: space-around;
+}
+
+
+.test{
+  width: 100%;
+}
+
+.carousel-container div > figure {
   display:flex !important;
   justify-content: center;
   background-color:#f2eecb;
   border-radius: 10px;
-  border-color: #7D533E !important;
+  border-color: #7D533E !important; 
   border-width: 2px !important;
   border-style: solid !important;
+  -webkit-box-sizing: border-box !important; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+  box-sizing: border-box;
 }
 
 .container {
@@ -54,8 +188,13 @@
 }
 
 .chart-container{
-  height: 800px; 
-  width:800px;
+  /* height: 100%;  */
+  /* width:100%; */
+  margin-top: 5%;
+  display:flex;
+  align-items: center;
+  justify-content: center;
+  flex:1
 }
 
 .overlay-container{
@@ -110,14 +249,13 @@
 }
 
 
-
 .carousel-container figure > img {
   /* display: flex; */
   margin-bottom: 10px; 
   width: auto;
   max-height: 140px;
   min-height: 140px;
-  max-width: 250px
+  max-width: 95%;
 }
 
 .carousel-container figure > div {
@@ -129,5 +267,6 @@
   justify-content: center;
   align-self: center;
   background-color: transparent;
-  color: black
+  color: black;
+
 }
