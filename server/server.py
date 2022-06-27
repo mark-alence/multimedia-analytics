@@ -31,14 +31,16 @@ def get_title(s, label=True):
     return s
 
 
+embeddings = np.load('embeddings.npy')
+tsne = np.load('tsne.npy')
+
 df = pd.read_csv('artistic_visual_storytelling.csv')
 df['date'] = df['date'].astype(int)
 df['end_date'] = df['date']
 df['image_name'] = df['image'].apply(lambda x: get_title(x, label=False))
+df['x'] = tsne[:, 0]
+df['y'] = tsne[:, 1]
 bins = ['tags', 'media', 'artist_nationality']
-
-
-embeddings = np.load('embeddings.npy')
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -71,6 +73,7 @@ def filter_images(args_dict):
     for i in bins:
         if i in args_dict:
             imgs = df[df[i].notna()]
+        
 
     for i in args_dict:
         val = args_dict[i] if not args_dict[i].isnumeric(
@@ -98,7 +101,6 @@ def get_icicle_data():
 
     if len(levels) == 0:
         return json.dumps({'payload': payload}, cls=NumpyEncoder)
-    print(levels)
 
     for k in filters:
         filters[k] = str(filters[k])
@@ -168,6 +170,10 @@ def get_similar_images():
             'media': df.iloc[i]['media'] if type(df.iloc[i]["media"]) != float != "nan" else 'N/A',
             'artist_nationality': df.iloc[i]['artist_nationality'] if type(df.iloc[i]["artist_nationality"]) != float else 'N/A',
             'artist_name': df.iloc[i]['artist_name'],
+            'x': df.iloc[i]['x'],
+            'y': df.iloc[i]['y'],
+            'date': df.iloc[i]['date'],
+            'style': df.iloc[i]['style'] if type(df.iloc[i]['style']) != float else 'N/A',
             'heading':  get_title(df.iloc[i].image)})
 
     payload = np.array(payload)
@@ -205,7 +211,6 @@ def imagenames():
     payload = []
     imgs = imgs.reset_index()
     for idx, row in imgs.iterrows():
-        print(row['tags'], type(row['tags']))
         payload.append({
             'id': row.id,
             'src': '/' + row.image,
@@ -217,10 +222,15 @@ def imagenames():
             'media': row['media'] if type(row["media"]) != float != "nan" else 'N/A',
             'artist_nationality': row['artist_nationality'] if type(row["artist_nationality"]) != float else 'N/A',
             'artist_name': row['artist_name'],
-            'heading':  get_title(row.image)})
+            'x': row['x'],
+            'y': row['y'],
+            'style': row['style'] if type(row['style']) != float else 'N/A',
+            'date': row['date'],
+            'heading':  get_title(row.image)},
+        )
 
     payload = np.array(payload)
-    payload = payload[0:50]
+    # payload = payload[0:50]
     payload = payload.tolist()
     payload = json.dumps({'names': payload}, cls=NumpyEncoder)
     return payload

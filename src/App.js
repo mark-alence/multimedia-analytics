@@ -1,5 +1,5 @@
 import "./App.css";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Select from "react-select";
 import Gallery from "react-grid-gallery";
 import Coverflow from "react-coverflow";
@@ -13,8 +13,7 @@ import CirclePack from "circlepack-chart";
 import * as d3 from "d3";
 import SideBar from "./SideBar";
 import CloseIcon from "@mui/icons-material/Close";
-import CollectionsIcon from "@mui/icons-material/Collections";
-
+import ScatterPlot from "./Scatter";
 function getQueryString(filters) {
   let str = "?";
   for (const property in filters) {
@@ -26,6 +25,7 @@ function getQueryString(filters) {
 
 function App() {
   const [data, setData] = useState([{}]);
+  const [dataSubset, setDataSubset] = useState([{}]);
   const [filters, setFilters] = useState({ artist_name: "ad-reinhardt" });
   const [additionalFilters, setAdditionalFilters] = useState({});
   const [isGrid, setIsGrid] = useState(false);
@@ -38,6 +38,20 @@ function App() {
   const [levels, setLevels] = useState(["date", "style", "media"]);
   const reloadChart = useRef(true);
   const [chart, setChart] = useState("sunburst");
+  const [activeImage, setActiveImage] = useState(null);
+  const carouselRef = useCallback(
+    (node) => {
+      if (node !== null) {
+        console.log(node.state.current);
+        setActiveImage(node.state.current);
+      }
+    },
+    [activeImage]
+  );
+
+  useEffect(() => {
+    console.log(activeImage);
+  });
 
   function getFilterFromNode(node) {
     let filters = {};
@@ -54,7 +68,9 @@ function App() {
       delete filters[i];
     }
 
-    filters["end_date"] = null;
+    if (node.name === "date") {
+      filters["end_date"] = filters["date"];
+    }
     return filters;
   }
 
@@ -153,13 +169,29 @@ function App() {
       fetch(`/filtered_images${queryString}`).then((res) =>
         res.json().then((data) => {
           setData(data.names);
-          console.log(data.names)
+          setDataSubset(data.names);
+          setActiveImage(Math.floor(data.names.length / 2));
+        })
+      );
+    } else {
+      setData([]);
+      setDataSubset([]);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    let queryString = getQueryString({ ...filters, ...additionalFilters });
+    if (queryString !== "") {
+      fetch(`/filtered_images${queryString}`).then((res) =>
+        res.json().then((data) => {
+          setDataSubset(data.names);
+          setActiveImage(Math.floor(data.names.length / 2));
         })
       );
     } else {
       setData([]);
     }
-  }, [filters]);
+  }, [additionalFilters]);
 
   const color = d3.scaleOrdinal(d3.schemePaired);
 
@@ -186,24 +218,28 @@ function App() {
               <div class="carousel-container">
                 <StyleRoot>
                   <Coverflow
+                    // ref={carouselRef}
                     height="250"
                     displayQuantityOfSide={2}
                     infiniteScroll={true}
                     navigation={false}
                     key={data.toString()}
                     clickable={true}
+                    active={activeImage}
                   >
-                    {data.map((e, i) => (
-                      <img
-                        // resizeMode="contain"
-                        class="carousel-img"
-                        width="3vw"
-                        src={e.src}
-                        key={i}
-                        alt={e.heading}
-                        onClick={() => getSimilarImagesFromCarousel(e)}
-                      />
-                    ))}
+                    {dataSubset
+                      .slice(0, Math.min(dataSubset.length, 50))
+                      .map((e, i) => (
+                        <img
+                          // resizeMode="contain"
+                          class="carousel-img"
+                          width="3vw"
+                          src={e.src}
+                          key={i}
+                          alt={e.heading}
+                          onClick={() => getSimilarImagesFromCarousel(e)}
+                        />
+                      ))}
                   </Coverflow>
                 </StyleRoot>
               </div>
@@ -222,13 +258,16 @@ function App() {
                   }
                 />
               }
-              <CollectionsIcon
-                className="display-imgs"
-                onClick={() =>
-                  setFilters((prev) => {
-                    reloadChart.current = false;
-                    return { ...prev, ...additionalFilters };
-                  })
+              <ScatterPlot
+                key={activeImage}
+                current={
+                  activeImage
+                    ? dataSubset[activeImage]
+                    : dataSubset[Math.floor(dataSubset.length / 2)]
+                }
+                data={dataSubset}
+                onSelect={(id) =>
+                  setActiveImage(dataSubset.map((e) => e.id).indexOf(id))
                 }
               />
             </div>

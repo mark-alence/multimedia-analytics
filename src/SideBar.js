@@ -5,17 +5,7 @@ import Select, { createFilter } from "react-select";
 import FilterListOffIcon from "@mui/icons-material/FilterListOff";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import { FixedSizeList as List } from "react-window";
-
-function prettyString(str) {
-  if (typeof str === "string") {
-    str = str.replaceAll("-", " ");
-    str = str.replaceAll("_", " ");
-    str = str.replaceAll(",", " ");
-
-    str = str.replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
-  }
-  return str;
-}
+import {prettyString} from './utils'
 
 const levelOptions = [
   "date",
