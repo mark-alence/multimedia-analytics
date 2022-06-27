@@ -75,9 +75,8 @@ function App() {
     fetchSimilarImages(img);
   }
 
-  function nodeClick(node) {}
-
   useEffect(() => {
+    let size = 450;
     if (reloadChart.current) {
       fetch("/icicle_data", {
         method: "POST",
@@ -94,8 +93,8 @@ function App() {
             myChart
               .data(res.payload)
               .label("name")
-              .height(400)
-              .width(400)
+              .height(size)
+              .width(size)
               .color((d, parent) => color(parent ? parent.data.name : null))
               .onClick(function (node) {
                 if (node) {
@@ -112,8 +111,8 @@ function App() {
             myChart()
               .data(res.payload)
               .label("name")
-              .height(400)
-              .width(400)
+              .height(size)
+              .width(size)
               .color((d, parent) => color(parent ? parent.data.name : null))
               .onClick(function (node) {
                 if (node) {
@@ -130,8 +129,8 @@ function App() {
             myChart
               .data(res.payload)
               .label("name")
-              .height(400)
-              .width(400)
+              .height(size)
+              .width(size)
               .color((d, parent) => color(parent ? parent.data.name : null))
               .onClick(function (node) {
                 if (node) {
@@ -154,6 +153,7 @@ function App() {
       fetch(`/filtered_images${queryString}`).then((res) =>
         res.json().then((data) => {
           setData(data.names);
+          console.log(data.names)
         })
       );
     } else {

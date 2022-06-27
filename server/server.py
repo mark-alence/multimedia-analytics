@@ -9,9 +9,35 @@ from scipy import spatial
 
 app = Flask(__name__)
 CORS(app)
+
+
+def get_string(s):
+    s = s.split('-')
+    s = [i.capitalize() for i in s]
+    s = ' '.join(s)
+    return s
+
+
+def get_title(s, label=True):
+    s = s[7:]
+    s = s.split('_')[1]
+    s = get_string(s)
+    s = s.split(' ')
+    last_word = s[-1].split('.')[0]
+    s = s[:-1]
+    if not last_word.isnumeric():
+        s.append(last_word)
+    s = ' '.join(s)
+    return s
+
+
 df = pd.read_csv('artistic_visual_storytelling.csv')
 df['date'] = df['date'].astype(int)
 df['end_date'] = df['date']
+df['image_name'] = df['image'].apply(lambda x: get_title(x, label=False))
+bins = ['tags', 'media', 'artist_nationality']
+
+
 embeddings = np.load('embeddings.npy')
 
 
@@ -24,26 +50,6 @@ class NumpyEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super(NumpyEncoder, self).default(obj)
-
-
-def get_string(s):
-    s = s.split('-')
-    s = [i.capitalize() for i in s]
-    s = ' '.join(s)
-    return s
-
-
-def get_title(s):
-    s = s[7:]
-    s = s.split('_')[1]
-    s = get_string(s)
-    s = s.split(' ')
-    last_word = s[-1].split('.')[0]
-    s = s[:-1]
-    if not last_word.isnumeric():
-        s.append(last_word)
-    s = ' '.join(s)
-    return s
 
 
 def filter_images(args_dict):
@@ -62,7 +68,7 @@ def filter_images(args_dict):
         del args_dict['date']
         del args_dict['end_date']
 
-    for i in ["tags", "media"]:
+    for i in bins:
         if i in args_dict:
             imgs = df[df[i].notna()]
 
@@ -70,12 +76,12 @@ def filter_images(args_dict):
         val = args_dict[i] if not args_dict[i].isnumeric(
         ) else int(args_dict[i])
         if len(imgs) == 0:
-            if False and (i == 'tags' or i == 'media'):
+            if i in bins:
                 imgs = df[df[i].str.contains(val)]
             else:
                 imgs = df.loc[df[i] == val]
         else:
-            if False and (i == "tags" or i == "media"):
+            if i in bins:
                 imgs = imgs[imgs[i].str.contains(val)]
             else:
                 imgs = imgs.loc[imgs[i] == val]
@@ -90,8 +96,8 @@ def get_icicle_data():
     del filters['levels']
     payload = {'children': [], 'name': ''}
 
-    if len(levels)==0:
-       return json.dumps({'payload': payload}, cls=NumpyEncoder)
+    if len(levels) == 0:
+        return json.dumps({'payload': payload}, cls=NumpyEncoder)
     print(levels)
 
     for k in filters:
@@ -155,9 +161,13 @@ def get_similar_images():
             'id': int(i),
             'src': '/' + df.iloc[i].image,
             'thumbnail': '/' + df.iloc[i].image,
-            'thumbnailWidth': 100,
-            'thumbnailHeight': 100,
+            'thumbnailWidth': 150,
+            'thumbnailHeight': 150,
             'caption': f'Title: {get_title(df.iloc[i].image)} \nYear: {int(df.iloc[i].date)} \nArtist Nationality: {df.iloc[i].artist_nationality.capitalize()}',
+            'tag': df.iloc[i]['tags'] if type(df.iloc[i]["tags"]) != float else 'N/A',
+            'media': df.iloc[i]['media'] if type(df.iloc[i]["media"]) != float != "nan" else 'N/A',
+            'artist_nationality': df.iloc[i]['artist_nationality'] if type(df.iloc[i]["artist_nationality"]) != float else 'N/A',
+            'artist_name': df.iloc[i]['artist_name'],
             'heading':  get_title(df.iloc[i].image)})
 
     payload = np.array(payload)
@@ -169,12 +179,13 @@ def get_similar_images():
 @app.route('/filter_options')
 def artists():
 
-    cols = ['date', 'end_date', 'artist_name', 'style', 'tags', 'media']
+    cols = ['date', 'end_date', 'artist_name', 'artist_nationality',
+            'style', 'tags', 'media', 'image_name']
     obj = {}
     for c in cols:
         obj[c] = np.unique(df[c].dropna().values)
 
-    for c in ['tags', 'media']:
+    for c in bins:
         all_vals = []
         for i in obj[c]:
             all_vals += i.split(',')
@@ -194,6 +205,7 @@ def imagenames():
     payload = []
     imgs = imgs.reset_index()
     for idx, row in imgs.iterrows():
+        print(row['tags'], type(row['tags']))
         payload.append({
             'id': row.id,
             'src': '/' + row.image,
@@ -201,6 +213,10 @@ def imagenames():
             'thumbnailWidth': 100,
             'thumbnailHeight': 100,
             'caption': f'Title: {get_title(row.image)} \nYear: {int(row.date)} \nArtist Nationality: {row.artist_nationality.capitalize()}',
+            'tag': row['tags'] if type(row["tags"]) != float else 'N/A',
+            'media': row['media'] if type(row["media"]) != float != "nan" else 'N/A',
+            'artist_nationality': row['artist_nationality'] if type(row["artist_nationality"]) != float else 'N/A',
+            'artist_name': row['artist_name'],
             'heading':  get_title(row.image)})
 
     payload = np.array(payload)

@@ -1,20 +1,31 @@
 import "./App.css";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, Component } from "react";
 import { Switch, FormControlLabel, Button } from "@mui/material";
-import Select from "react-select";
+import Select, { createFilter } from "react-select";
 import FilterListOffIcon from "@mui/icons-material/FilterListOff";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
+import { FixedSizeList as List } from "react-window";
 
 function prettyString(str) {
   if (typeof str === "string") {
     str = str.replaceAll("-", " ");
     str = str.replaceAll("_", " ");
+    str = str.replaceAll(",", " ");
+
     str = str.replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
   }
   return str;
 }
 
-const levelOptions = ["date", "style", "media", "artist_name", "tags"];
+const levelOptions = [
+  "date",
+  "style",
+  "media",
+  "artist_name",
+  "artist_nationality",
+  "tags",
+  "image_name"
+];
 const chartOptions = ["icicle", "sunburst", "circlepack"];
 
 const customStyles = {
@@ -22,7 +33,11 @@ const customStyles = {
     ...provided,
     borderBottom: "1px solid grey",
     color: state.isSelected ? "blue" : "black",
-    padding: 5,
+    // padding: 5,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100%",
   }),
   container: (provided, state) => ({
     ...provided,
@@ -36,6 +51,26 @@ const customStyles = {
   }),
   valueContainer: (provided, state) => ({ ...provided, padding: 0 }),
 };
+
+let height = 50;
+class MenuList extends Component {
+  render() {
+    const { options, children, maxHeight, getValue } = this.props;
+    const [value] = getValue();
+    const initialOffset = options.indexOf(value) * height;
+
+    return (
+      <List
+        height={maxHeight}
+        itemCount={children.length}
+        itemSize={height}
+        initialScrollOffset={initialOffset}
+      >
+        {({ index, style }) => <div style={style}>{children[index]}</div>}
+      </List>
+    );
+  }
+}
 
 function SideBar(props) {
   const [filterOptions, setFilterOptions] = useState({});
@@ -77,6 +112,7 @@ function SideBar(props) {
           <label>Grid</label>
         </div>
       </div>
+      <div className="title">Filters</div>
       <div className="select-group">
         {Object.keys(filterOptions).map((option) => {
           return (
@@ -95,6 +131,8 @@ function SideBar(props) {
                     style={{ paddingBottom: 5, margin: 0, width: "90%" }}
                     control={
                       <Select
+                        components={{ MenuList }}
+                        filterOption={createFilter({ ignoreAccents: false })}
                         styles={customStyles}
                         value={
                           props.filters[option] === undefined
@@ -119,6 +157,7 @@ function SideBar(props) {
         })}
       </div>
 
+      <div className="title">Charts</div>
       <div className="circle-group">
         {chartOptions.map((e) => {
           return (
@@ -132,6 +171,8 @@ function SideBar(props) {
           );
         })}
       </div>
+
+      <div className="title">Levels</div>
       <div className="circle-group">
         {levelOptions.map((e) => {
           let isActive = levels.includes(e);
@@ -149,7 +190,7 @@ function SideBar(props) {
                   }
                 }}
               >
-                {prettyString(e).split(" ")[0]}
+                {prettyString(e)}
               </div>
               {isActive ? levels.indexOf(e) + 1 : ""}
             </div>
