@@ -30,7 +30,8 @@ function App() {
   const [additionalFilters, setAdditionalFilters] = useState({});
   const [isGrid, setIsGrid] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
-  const [similarImages, setSimilarImages] = useState();
+  const [similarImages, setSimilarImages] = useState([]);
+  const [similarImagesSubset, setSimilarImagesSubset] = useState([]);
   const sunburstChart = useRef(null);
   const icicleChart = useRef(null);
   const treemapChart = useRef(null);
@@ -39,6 +40,11 @@ function App() {
   const reloadChart = useRef(true);
   const [chart, setChart] = useState("sunburst");
   const [activeImage, setActiveImage] = useState(null);
+  const [popup, setPopup] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const currentId = useRef(null);
+  document.body.style.overflow = "hidden"
+
   const carouselRef = useCallback(
     (node) => {
       if (node !== null) {
@@ -49,9 +55,13 @@ function App() {
     [activeImage]
   );
 
-  useEffect(() => {
-    console.log(activeImage);
-  });
+  function filterSimilarImages() {
+    let filtered = JSON.parse(JSON.stringify(similarImages));
+    for (const p in additionalFilters) {
+      filtered = filtered.filter((e) => e[p] == additionalFilters[p]);
+    }
+    return filtered;
+  }
 
   function getFilterFromNode(node) {
     let filters = {};
@@ -68,30 +78,10 @@ function App() {
       delete filters[i];
     }
 
-    if (node.name === "date") {
-      filters["end_date"] = filters["date"];
-    }
     return filters;
   }
 
-  function fetchSimilarImages(img) {
-    fetch(`/similar_images?id=${img.id}`).then((res) =>
-      res.json().then((data) => {
-        setSimilarImages({ left: img, right: data.names });
-        setShowOverlay(true);
-      })
-    );
-  }
-
-  function getSimilarImagesFromGrid() {
-    fetchSimilarImages(arguments[1]);
-  }
-
-  function getSimilarImagesFromCarousel(img) {
-    fetchSimilarImages(img);
-  }
-
-  useEffect(() => {
+  function fetchIcicleData(id) {
     let size = 450;
     if (reloadChart.current) {
       fetch("/icicle_data", {
@@ -99,7 +89,11 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...filters, levels: levels }),
+        body: JSON.stringify({
+          ...filters,
+          levels: levels,
+          id,
+        }),
       }).then((res) =>
         res.json().then((res) => {
           let myChart;
@@ -114,8 +108,8 @@ function App() {
               .color((d, parent) => color(parent ? parent.data.name : null))
               .onClick(function (node) {
                 if (node) {
-                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
                   myChart.zoomToNode(node);
+                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
                 }
               })
               .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
@@ -132,8 +126,8 @@ function App() {
               .color((d, parent) => color(parent ? parent.data.name : null))
               .onClick(function (node) {
                 if (node) {
-                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
                   myChart.focusOnNode(node);
+                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
                 }
               })
               .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
@@ -150,18 +144,52 @@ function App() {
               .color((d, parent) => color(parent ? parent.data.name : null))
               .onClick(function (node) {
                 if (node) {
-                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
                   myChart.zoomToNode(node);
+                  setAdditionalFilters(getFilterFromNode(node.__dataNode));
                 }
               })
               .tooltipContent((d, node) => `Size: <i>${node.value}</i>`)(
               circlePackChart.current
             );
           }
+          if (id) {
+            setSimilarImages(res.images);
+            setSimilarImagesSubset(res.images);
+            setShowOverlay(true);
+            setLoading(false);
+            setPopup(false);
+            currentId.current = id;
+          }
         })
       );
     }
-  }, [data, levels, chart]);
+  }
+
+  useEffect(() => {
+    if (showOverlay) {
+      setActiveImage(0);
+    }
+  }, [similarImagesSubset]);
+
+  function fetchSimilarImages(img) {
+    fetchIcicleData(img.id);
+  }
+
+  function getSimilarImagesFromGrid() {
+    fetchSimilarImages(arguments[1]);
+  }
+
+  function getSimilarImagesFromCarousel(img) {
+    fetchSimilarImages(img);
+  }
+
+  useEffect(() => {
+    if (!showOverlay) {
+      fetchIcicleData();
+    } else {
+      fetchIcicleData(currentId.current);
+    }
+  }, [data, levels, chart, showOverlay]);
 
   useEffect(() => {
     let queryString = getQueryString(filters);
@@ -180,16 +208,28 @@ function App() {
   }, [filters]);
 
   useEffect(() => {
-    let queryString = getQueryString({ ...filters, ...additionalFilters });
-    if (queryString !== "") {
-      fetch(`/filtered_images${queryString}`).then((res) =>
-        res.json().then((data) => {
-          setDataSubset(data.names);
-          setActiveImage(Math.floor(data.names.length / 2));
-        })
-      );
+    if (!showOverlay) {
+      let queryString = getQueryString({
+        ...filters,
+        ...additionalFilters,
+        end_date: additionalFilters.date
+          ? additionalFilters.date
+          : filters.end_date,
+      });
+      if (queryString !== "") {
+        fetch(`/filtered_images${queryString}`).then((res) =>
+          res.json().then((data) => {
+            setDataSubset(data.names);
+            setActiveImage(Math.floor(data.names.length / 2));
+          })
+        );
+      } else {
+        setData([]);
+      }
     } else {
-      setData([]);
+      let filtered = filterSimilarImages(similarImages);
+      setSimilarImagesSubset(filtered);
+      setActiveImage(0);
     }
   }, [additionalFilters]);
 
@@ -221,14 +261,24 @@ function App() {
                     // ref={carouselRef}
                     height="250"
                     displayQuantityOfSide={2}
-                    infiniteScroll={true}
+                    infiniteScroll={false}
                     navigation={false}
-                    key={data.toString()}
+                    key={(showOverlay
+                      ? (similarImagesSubset || '')
+                      : dataSubset
+                    ).toString()}
                     clickable={true}
                     active={activeImage}
                   >
-                    {dataSubset
-                      .slice(0, Math.min(dataSubset.length, 50))
+                    {(showOverlay ? similarImagesSubset : dataSubset)
+                      .slice(
+                        0,
+                        Math.min(
+                          (showOverlay ? similarImagesSubset : dataSubset)
+                            .length,
+                          50
+                        )
+                      )
                       .map((e, i) => (
                         <img
                           // resizeMode="contain"
@@ -237,7 +287,7 @@ function App() {
                           src={e.src}
                           key={i}
                           alt={e.heading}
-                          onClick={() => getSimilarImagesFromCarousel(e)}
+                          onClick={() => setPopup(e)}
                         />
                       ))}
                   </Coverflow>
@@ -265,14 +315,19 @@ function App() {
                     ? dataSubset[activeImage]
                     : dataSubset[Math.floor(dataSubset.length / 2)]
                 }
-                data={dataSubset}
+                data={showOverlay ? similarImagesSubset : dataSubset}
                 onSelect={(id) =>
-                  setActiveImage(dataSubset.map((e) => e.id).indexOf(id))
+                  setActiveImage(
+                    (showOverlay ? similarImagesSubset : dataSubset)
+                      .map((e) => e.id)
+                      .indexOf(id)
+                  )
                 }
               />
             </div>
           </div>
           <SideBar
+            onReload={() => setShowOverlay(false)}
             setChart={(e) => setChart(e)}
             chart={chart}
             onLevelChange={(e) => {
@@ -306,17 +361,21 @@ function App() {
               });
             }}
           />
-          {data && showOverlay && (
+          {popup && (
             <div className="container">
               <div className="close-div">
                 <CloseIcon
                   className="close-button"
-                  onClick={() => setShowOverlay(false)}
+                  onClick={() => setPopup(false)}
                 />
               </div>
               <Overlay
-                imageLeft={similarImages.left}
-                imagesRight={similarImages.right}
+                loading={loading}
+                onCancel={() => setPopup(false)}
+                onProceed={() => {
+                  setLoading(true);
+                  getSimilarImagesFromCarousel(popup);
+                }}
               />
             </div>
           )}

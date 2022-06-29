@@ -41,6 +41,7 @@ df['image_name'] = df['image'].apply(lambda x: get_title(x, label=False))
 df['x'] = tsne[:, 0]
 df['y'] = tsne[:, 1]
 bins = ['tags', 'media', 'artist_nationality']
+previous_req = {'id': None, 'ids': []}
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -59,21 +60,25 @@ def filter_images(args_dict):
     print(args_dict)
 
     for k in list(args_dict):
-        if args_dict[k] == 'null' or args_dict[k] == 'None':
+        if args_dict[k] == 'null' or args_dict[k] == 'undefined':
             del args_dict[k]
 
     if 'date' in args_dict and 'end_date' in args_dict:
         if int(args_dict['date']) > int(args_dict['end_date']):
             return imgs
-        imgs = df.loc[(df['date'] >= int(args_dict['date'])) &
-                      (df['date'] <= int(args_dict['end_date']))]
+
+        if args_dict['date'] == args_dict['end_date']:
+            imgs = df[df['date'] == int(args_dict['date'])]
+
+        else:
+            imgs = df.loc[(df['date'] >= int(args_dict['date'])) &
+                          (df['date'] <= int(args_dict['end_date']))]
         del args_dict['date']
         del args_dict['end_date']
 
     for i in bins:
         if i in args_dict:
-            imgs = df[df[i].notna()]
-        
+            imgs = imgs[imgs[i].notna()]
 
     for i in args_dict:
         val = args_dict[i] if not args_dict[i].isnumeric(
@@ -86,26 +91,55 @@ def filter_images(args_dict):
         else:
             if i in bins:
                 imgs = imgs[imgs[i].str.contains(val)]
+                print(imgs)
+
             else:
-                imgs = imgs.loc[imgs[i] == val]
+                imgs = imgs[imgs[i] == val]
     return imgs
 
 
 @app.route('/icicle_data', methods=['POST'])
 def get_icicle_data():
-
+    global previous_req
     filters = request.get_json()
     levels = filters['levels']
     del filters['levels']
     payload = {'children': [], 'name': ''}
 
     if len(levels) == 0:
-        return json.dumps({'payload': payload}, cls=NumpyEncoder)
+        return json.dumps({'payload': payload, 'images': []}, cls=NumpyEncoder)
 
     for k in filters:
         filters[k] = str(filters[k])
 
-    new_df = filter_images(filters)
+    images = []
+    if 'id' in filters:
+
+        if filters['id'] == previous_req['id']:
+            ids = previous_req['ids']
+        else:
+            ids = get_similar_images(int(filters['id']))
+            previous_req = {'id': filters['id'], 'ids': ids}
+        new_df = df.iloc[ids]
+        for i in ids:
+            images.append({
+                'id': int(i),
+                'src': '/' + df.iloc[i].image,
+                'thumbnail': '/' + df.iloc[i].image,
+                'thumbnailWidth': 150,
+                'thumbnailHeight': 150,
+                'caption': f'Title: {get_title(df.iloc[i].image)} \nYear: {int(df.iloc[i].date)} \nArtist Nationality: {df.iloc[i].artist_nationality.capitalize()}',
+                'tag': df.iloc[i]['tags'] if type(df.iloc[i]["tags"]) != float else 'N/A',
+                'media': df.iloc[i]['media'] if type(df.iloc[i]["media"]) != float != "nan" else 'N/A',
+                'artist_nationality': df.iloc[i]['artist_nationality'] if type(df.iloc[i]["artist_nationality"]) != float else 'N/A',
+                'artist_name': df.iloc[i]['artist_name'],
+                'x': df.iloc[i]['x'],
+                'y': df.iloc[i]['y'],
+                'date': df.iloc[i]['date'],
+                'style': df.iloc[i]['style'] if type(df.iloc[i]['style']) != float else 'N/A',
+                'heading':  get_title(df.iloc[i].image)})
+    else:
+        new_df = filter_images(filters)
 
     if len(new_df) != 0:
         # new_df = new_df.loc[new_df['date'] > 1850]
@@ -132,7 +166,8 @@ def get_icicle_data():
             target['name'] = names[-1]
             target['value'] = row['v']
             del target['children']
-    payload = json.dumps({'payload': payload}, cls=NumpyEncoder)
+    payload = json.dumps(
+        {'payload': payload, 'images': images}, cls=NumpyEncoder)
     return payload
 
 
@@ -144,42 +179,38 @@ def toy_data():
     return json.dumps({'names': obj})
 
 
-@app.route('/similar_images', methods=['GET'])
-def get_similar_images():
+def get_similar_images(idx):
 
-    args = request.args
-    args_dict = args.to_dict()
-    idx = int(args_dict['id'])
     selected_img = embeddings[idx]
     sims = []
     for i, img in enumerate(embeddings):
         sims.append(spatial.distance.cosine(img, selected_img))
     sims = np.array(sims)
-    ids = np.argsort(sims)[1:4]
+    ids = np.argsort(sims)[0:50]
 
-    payload = []
-    for i in ids:
-        payload.append({
-            'id': int(i),
-            'src': '/' + df.iloc[i].image,
-            'thumbnail': '/' + df.iloc[i].image,
-            'thumbnailWidth': 150,
-            'thumbnailHeight': 150,
-            'caption': f'Title: {get_title(df.iloc[i].image)} \nYear: {int(df.iloc[i].date)} \nArtist Nationality: {df.iloc[i].artist_nationality.capitalize()}',
-            'tag': df.iloc[i]['tags'] if type(df.iloc[i]["tags"]) != float else 'N/A',
-            'media': df.iloc[i]['media'] if type(df.iloc[i]["media"]) != float != "nan" else 'N/A',
-            'artist_nationality': df.iloc[i]['artist_nationality'] if type(df.iloc[i]["artist_nationality"]) != float else 'N/A',
-            'artist_name': df.iloc[i]['artist_name'],
-            'x': df.iloc[i]['x'],
-            'y': df.iloc[i]['y'],
-            'date': df.iloc[i]['date'],
-            'style': df.iloc[i]['style'] if type(df.iloc[i]['style']) != float else 'N/A',
-            'heading':  get_title(df.iloc[i].image)})
+    # payload = []
+    # for i in ids:
+    #     payload.append({
+    #         'id': int(i),
+    #         'src': '/' + df.iloc[i].image,
+    #         'thumbnail': '/' + df.iloc[i].image,
+    #         'thumbnailWidth': 150,
+    #         'thumbnailHeight': 150,
+    #         'caption': f'Title: {get_title(df.iloc[i].image)} \nYear: {int(df.iloc[i].date)} \nArtist Nationality: {df.iloc[i].artist_nationality.capitalize()}',
+    #         'tag': df.iloc[i]['tags'] if type(df.iloc[i]["tags"]) != float else 'N/A',
+    #         'media': df.iloc[i]['media'] if type(df.iloc[i]["media"]) != float != "nan" else 'N/A',
+    #         'artist_nationality': df.iloc[i]['artist_nationality'] if type(df.iloc[i]["artist_nationality"]) != float else 'N/A',
+    #         'artist_name': df.iloc[i]['artist_name'],
+    #         'x': df.iloc[i]['x'],
+    #         'y': df.iloc[i]['y'],
+    #         'date': df.iloc[i]['date'],
+    #         'style': df.iloc[i]['style'] if type(df.iloc[i]['style']) != float else 'N/A',
+    #         'heading':  get_title(df.iloc[i].image)})
 
-    payload = np.array(payload)
-    payload = payload.tolist()
-    payload = json.dumps({'names': payload}, cls=NumpyEncoder)
-    return payload
+    # payload = np.array(payload)
+    # payload = payload.tolist()
+    # payload = json.dumps({'names': payload}, cls=NumpyEncoder)
+    return ids
 
 
 @app.route('/filter_options')

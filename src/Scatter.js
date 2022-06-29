@@ -18,9 +18,13 @@ const ScatterPlot = ({ data, onSelect, current, key }) => {
   const svgRef = useRef(null);
 
   useEffect(() => {
-    console.log(current, data);
     let xs = data.map((e) => e.x);
     let ys = data.map((e) => e.y);
+    let maxX = Math.max(...xs);
+    let minX = Math.min(...xs);
+    let maxY = Math.max(...ys);
+    let minY = Math.min(...ys);
+
     const svgEl = d3.select(svgRef.current);
     svgEl.selectAll("*").remove();
     const svg = svgEl
@@ -56,22 +60,32 @@ const ScatterPlot = ({ data, onSelect, current, key }) => {
       .style("opacity", 0);
 
     // Dots
-    svg
+    var dots = svg
       .selectAll("scatterPoints")
       .data(data)
       .enter()
       .append("circle")
+      //   .attr("cx", (d) => xScale((maxX + minX) / 2))
+      //   .attr("cy", (d) => yScale((maxY + minY) / 2))
       .attr("cx", (d) => xScale(d.x))
       .attr("cy", (d) => yScale(d.y))
       .attr("r", 2)
-      .style("fill","#7ea4b3")
-      .attr("stroke","#7ea4b3")
+      .style("fill", "#7ea4b3")
+      .attr("stroke", "#7ea4b3")
       .attr("stroke-width", 4)
+      .on("click", (d, i) => onSelect(i.id))
+      .style("opacity", 0);
 
-      // Animated effects on mouse contact
+    //   .attr("cx", (d) => xScale(d.x))
+    //   .attr("cy", (d) => yScale(d.y));
+
+    // Animated effects on mouse contact
+
+    dots
       .on("mouseover", function (d, i) {
         // Circle 'pops' out when contact
         d3.select(this).transition().duration("1").attr("r", 5);
+        d3.select(this).transition().duration("0").style("opacity", 1);
 
         // Code for the tooltip that shows the data
         div
@@ -96,10 +110,11 @@ const ScatterPlot = ({ data, onSelect, current, key }) => {
 
       // Animated effects on mouse leaving
 
-      .on("click", (d, i) => onSelect(i.id))
       .on("mouseup", function (d, i) {
         // Set  the circle to be the same size as before
         d3.select(this).transition().duration("200").attr("r", 2);
+        d3.select(this).transition().duration("0").style("opacity", 1);
+
         // Remove the tooltip
         div.transition().duration("200").style("opacity", 0);
       })
@@ -109,7 +124,11 @@ const ScatterPlot = ({ data, onSelect, current, key }) => {
         // Remove the tooltip
         div.transition().duration("200").style("opacity", 0);
       });
-  }, [data, current, key]);
+
+    dots.transition().duration(750).style("opacity", 1);
+
+
+  }, [data]);
 
   return <svg ref={svgRef} width={500} height={500} />;
 };

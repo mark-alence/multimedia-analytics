@@ -5,7 +5,8 @@ import Select, { createFilter } from "react-select";
 import FilterListOffIcon from "@mui/icons-material/FilterListOff";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import { FixedSizeList as List } from "react-window";
-import {prettyString} from './utils'
+import { prettyString } from "./utils";
+import ReplayIcon from "@mui/icons-material/Replay";
 
 const levelOptions = [
   "date",
@@ -14,7 +15,7 @@ const levelOptions = [
   "artist_name",
   "artist_nationality",
   "tags",
-  "image_name"
+  "image_name",
 ];
 const chartOptions = ["icicle", "sunburst", "circlepack"];
 
@@ -96,6 +97,9 @@ function SideBar(props) {
             props.clearFilters();
           }}
         />
+
+        <ReplayIcon className="filter-icon" onClick={() => props.onReload()}/>
+
         <div className="switch-container">
           <label>Carousel</label>
           <Switch onChange={() => props.onSwitch()} />
