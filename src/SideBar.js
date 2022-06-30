@@ -91,14 +91,23 @@ function SideBar(props) {
   return (
     <div className="sidebar-container">
       <div className="sidebar-buttons">
-        <FilterListOffIcon
-          className="filter-icon"
-          onClick={() => {
-            props.clearFilters();
-          }}
-        />
+        <div className="button-container">
+          <FilterListOffIcon
+            className="filter-icon"
+            onClick={() => {
+              props.clearFilters();
+            }}
+          />
+          Clear Filters
+        </div>
 
-        <ReplayIcon className="filter-icon" onClick={() => props.onReload()}/>
+        <div className="button-container">
+          <ReplayIcon
+            className="filter-icon"
+            onClick={() => props.onReload()}
+          />
+          Restore Filters
+        </div>
 
         <div className="switch-container">
           <label>Carousel</label>

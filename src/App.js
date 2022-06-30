@@ -14,6 +14,8 @@ import * as d3 from "d3";
 import SideBar from "./SideBar";
 import CloseIcon from "@mui/icons-material/Close";
 import ScatterPlot from "./Scatter";
+import Tooltip from "@mui/material/Tooltip";
+
 function getQueryString(filters) {
   let str = "?";
   for (const property in filters) {
@@ -43,7 +45,7 @@ function App() {
   const [popup, setPopup] = useState(false);
   const [loading, setLoading] = useState(false);
   const currentId = useRef(null);
-  document.body.style.overflow = "hidden"
+  document.body.style.overflow = "hidden";
 
   const carouselRef = useCallback(
     (node) => {
@@ -250,8 +252,8 @@ function App() {
               <div className="grid-container">
                 <Gallery
                   id="main-gal"
-                  images={data}
-                  onSelectImage={getSimilarImagesFromGrid}
+                  images={showOverlay ? similarImagesSubset : dataSubset}
+                  // onSelectImage={getSimilarImagesFromGrid}
                 />
               </div>
             ) : (
@@ -264,7 +266,7 @@ function App() {
                     infiniteScroll={false}
                     navigation={false}
                     key={(showOverlay
-                      ? (similarImagesSubset || '')
+                      ? similarImagesSubset || ""
                       : dataSubset
                     ).toString()}
                     clickable={true}
@@ -280,15 +282,25 @@ function App() {
                         )
                       )
                       .map((e, i) => (
-                        <img
-                          // resizeMode="contain"
-                          class="carousel-img"
-                          width="3vw"
-                          src={e.src}
-                          key={i}
+                        <Tooltip
                           alt={e.heading}
-                          onClick={() => setPopup(e)}
-                        />
+                          title={
+                            <span style={{ whiteSpace: "pre-line" }}>
+                              {e.caption}
+                            </span>
+                          }
+                          arrow
+                        >
+                          <img
+                            // resizeMode="contain"
+                            class="carousel-img"
+                            width="3vw"
+                            src={e.src}
+                            key={i}
+                            alt={e.heading}
+                            onClick={() => setPopup(e)}
+                          />
+                        </Tooltip>
                       ))}
                   </Coverflow>
                 </StyleRoot>
@@ -363,12 +375,12 @@ function App() {
           />
           {popup && (
             <div className="container">
-              <div className="close-div">
+              {/* <div className="close-div">
                 <CloseIcon
                   className="close-button"
                   onClick={() => setPopup(false)}
                 />
-              </div>
+              </div> */}
               <Overlay
                 loading={loading}
                 onCancel={() => setPopup(false)}

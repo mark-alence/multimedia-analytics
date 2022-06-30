@@ -70,15 +70,24 @@ def filter_images(args_dict):
         if args_dict['date'] == args_dict['end_date']:
             imgs = df[df['date'] == int(args_dict['date'])]
 
-        else:
-            imgs = df.loc[(df['date'] >= int(args_dict['date'])) &
-                          (df['date'] <= int(args_dict['end_date']))]
         del args_dict['date']
         del args_dict['end_date']
 
+    else:
+        if 'date' in args_dict:
+            imgs = df[df['date'] >= int(args_dict['date'])]
+            del args_dict['date']
+
+        if 'end_date' in args_dict:
+            imgs = df[df['end_date'] <= int(args_dict['end_date'])]
+            del args_dict['end_date']
+
     for i in bins:
         if i in args_dict:
-            imgs = imgs[imgs[i].notna()]
+            if len(imgs):
+                imgs = imgs[imgs[i].notna()]
+            else:
+                imgs = df[df[i].notna()]
 
     for i in args_dict:
         val = args_dict[i] if not args_dict[i].isnumeric(
@@ -128,7 +137,7 @@ def get_icicle_data():
                 'thumbnail': '/' + df.iloc[i].image,
                 'thumbnailWidth': 150,
                 'thumbnailHeight': 150,
-                'caption': f'Title: {get_title(df.iloc[i].image)} \nYear: {int(df.iloc[i].date)} \nArtist Nationality: {df.iloc[i].artist_nationality.capitalize()}',
+            'caption': f'Title: {get_title(df.iloc[i].image)} \nArtist: {get_string(df.iloc[i].artist_name)}\nYear: {int(df.iloc[i].date)} \nArtist Nationality: {df.iloc[i].artist_nationality.capitalize()}\nStyle: {df.iloc[i].style}',
                 'tag': df.iloc[i]['tags'] if type(df.iloc[i]["tags"]) != float else 'N/A',
                 'media': df.iloc[i]['media'] if type(df.iloc[i]["media"]) != float != "nan" else 'N/A',
                 'artist_nationality': df.iloc[i]['artist_nationality'] if type(df.iloc[i]["artist_nationality"]) != float else 'N/A',
@@ -248,7 +257,7 @@ def imagenames():
             'thumbnail': '/' + row.image,
             'thumbnailWidth': 100,
             'thumbnailHeight': 100,
-            'caption': f'Title: {get_title(row.image)} \nYear: {int(row.date)} \nArtist Nationality: {row.artist_nationality.capitalize()}',
+            'caption': f'Title: {get_title(row.image)} \nArtist: {get_string(row.artist_name)}\nYear: {int(row.date)} \nArtist Nationality: {row.artist_nationality.capitalize()}\nStyle: {row.style}',
             'tag': row['tags'] if type(row["tags"]) != float else 'N/A',
             'media': row['media'] if type(row["media"]) != float != "nan" else 'N/A',
             'artist_nationality': row['artist_nationality'] if type(row["artist_nationality"]) != float else 'N/A',
